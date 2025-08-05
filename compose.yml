@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: yacen-server-db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: [ "CMD-SHELL", "true" ]
+      interval: 1s
+      timeout: 2s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+  yacen-server:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    build:
+      context: .
+    ports:
+      - "1448:1448"
+
+volumes:
+  pgdata:
+    driver: local

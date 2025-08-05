@@ -1,0 +1,3 @@
+[submodule "yacen-api"]
+	path = yacen-api
+	url = https://github.com/NotBalds/yacen-api
