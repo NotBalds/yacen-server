@@ -108,7 +108,7 @@ func GetMeta(ctx context.Context) ([]byte, ed25519.PublicKey, error) {
 	return sig, pkey, nil
 }
 
-func (s server) AttachMeta(ctx *context.Context, req proto.Message) error {
+func (s server) AttachMeta(ctx context.Context, req proto.Message) error {
 	body, err := proto.Marshal(req)
 	if err != nil {
 		log.Error("Could not serialize request body in CreateRoom")
@@ -127,7 +127,7 @@ func (s server) AttachMeta(ctx *context.Context, req proto.Message) error {
 		"pubkey":    bkey,
 	})
 
-	*ctx = metadata.NewOutgoingContext(*ctx, header)
+	grpc.SendHeader(ctx, header)
 	return nil
 }
 

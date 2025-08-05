@@ -18,7 +18,7 @@ func (s *server) CreateRoom(ctx context.Context, req *api.CreateRoomReq) (*api.C
 		return nil, errors.New("Wrong metadata")
 	}
 
-	err := s.AttachMeta(&ctx, req)
+	err := s.AttachMeta(ctx, req)
 	if err != nil {
 		log.Fatal("Could not attach meta", "err", err)
 	}
@@ -76,7 +76,7 @@ func (s *server) DeleteRoom(ctx context.Context, req *api.DeleteRoomReq) (*api.D
 		return nil, errors.New("Wrong metadata")
 	}
 
-	err := s.AttachMeta(&ctx, req)
+	err := s.AttachMeta(ctx, req)
 	if err != nil {
 		log.Fatal("Could not attach meta", "err", err)
 	}
@@ -117,7 +117,7 @@ func (s *server) GetRoomInfo(ctx context.Context, req *api.GetRoomInfoReq) (*api
 		return nil, errors.New("Wrong metadata")
 	}
 
-	err := s.AttachMeta(&ctx, req)
+	err := s.AttachMeta(ctx, req)
 	if err != nil {
 		log.Fatal("Could not attach meta", "err", err)
 	}
@@ -160,6 +160,50 @@ func (s *server) GetRoomInfo(ctx context.Context, req *api.GetRoomInfoReq) (*api
 			AllowedPublicKeys:        room.AllowedKeys,
 			PendingJoinRequests:      room.PendingJoinRequests,
 		},
+		Muid: CreateMuid(),
+	}, nil
+}
+
+func (s *server) UpdateRoomInfo(ctx context.Context, req *api.UpdateRoomInfoReq) (*api.UpdateRoomInfoRes, error) {
+	pkey, ok := CheckMeta(ctx, req)
+	if !ok {
+		return nil, errors.New("Wrong metadata")
+	}
+
+	err := s.AttachMeta(ctx, req)
+	if err != nil {
+		log.Fatal("Could not attach meta", "err", err)
+	}
+
+	sqlDB, _ := s.DB.Model(&Room{}).DB()
+
+	if err := sqlDB.Ping(); err != nil {
+		log.Fatal("Database ping failed:", "err", err)
+	}
+
+	rid := req.RoomId
+	var rooms []Room
+	s.DB.Model(&Room{}).Where("r_id = ?", rid).Find(&rooms)
+
+	if len(rooms) == 0 {
+		return nil, errors.New("nosuchroom")
+	}
+
+	room := rooms[0]
+
+	if !slices.Contains(room.AdminKeys, pkey) {
+		return nil, errors.New("accessdenied")
+	}
+
+	inf := req.PublicInfo
+
+	s.DB.Model(&Room{}).Select("type", "encrypted_name", "encrypted_desc").Where("r_id = ?", rid).Updates(Room{
+		Type:          inf.RoomType,
+		EncryptedName: inf.EncryptedRoomName,
+		EncryptedDesc: inf.EncryptedRoomDescription,
+	})
+
+	return &api.UpdateRoomInfoRes{
 		Muid: CreateMuid(),
 	}, nil
 }

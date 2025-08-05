@@ -12,6 +12,7 @@
 					name = "yacen-server-devshell";
 					packages = with pkgs; [
 						go
+						gopls
 						postgresql
 					];
 				};
